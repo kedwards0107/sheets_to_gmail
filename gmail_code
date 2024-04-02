@@ -1,0 +1,172 @@
+
+# function to send defined cells in email specified
+
+function sendEmail() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var address = sheet.getRange('A1:C8').getValues();
+  // var map = Maps.newStaticMap().addMarker(address)
+  
+  GmailApp.sendEmail('person1@gmail.com', 'person2@gmail.com', address);
+}
+
+# function to extract data and format email 
+
+function Person1Email() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var data = sheet.getRange('A1:F4').getDisplayValues();
+  var date = Utilities.formatDate(new Date(), "GMT", "MMM-yyyy");
+  var subject = "Monthly Update for " + date;
+  var recipient = 'youremail@gmail.com'
+  var email_body = '<html><body> <h2>Here is your monthly stock snapshot:</h2> <table style = border-collapse:collapse; border = 1 cellpadding =5><tr>';
+  for (var row = 0; row<data.length;++row){
+    for (var col =0; col<data[0].length;++col)
+    {
+      if (row==0)
+      { email_body+='<th>'+data[row][col]+'</th>'}
+      else{
+       { email_body+='<td style="text-align: center">'+data[row][col]+'</td>'} 
+      }
+    }
+    email_body+='</tr><tr>'
+  }
+  email_body += '</tr></table><br><br> These stocks pay out a quarterly dividend, which is set to be automatically reinvested. That is why your number of stock shares are more than you originally purchased. You can find calculators on-line to learn how this is calculated and historical dividends (also known as yields) can be found here:<br><br> <a href="https://ycharts.com/mutual_funds/M:VFIAX/dividend_yield">VFIAX</a>  <br><br> <a href="https://ycharts.com/mutual_funds/M:VTSAX/dividend_yield">VTSAX</a>  <br><br>Love, Dad </body></html>'
+  GmailApp.sendEmail(recipient, subject, "", {htmlBody:email_body});
+}
+
+# Bank of Dad functions 
+function myFunction() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ws = ss.getSheetByName("Allowance");
+
+  const h1 = ws.getRange("B3").getValue();
+  const netTotal = ws.getRange("E4").getValue();
+  const cur_date = Utilities.formatDate(new Date(), "GMT", "MMMM-yyyy");
+  const subheader = cur_date
+  const headers = ws.getRange("B6:E6").getValues();
+  const date= headers[0][0];
+  const description = headers[0][1];
+  const amount = headers[0][2];
+  const balance = headers[0][3];
+
+  const lastRow = ws.getLastRow();
+
+  const tableRangeValues= ws.getRange(7, 2, lastRow-7,5).getDisplayValues();
+
+  const htmlTemplate = HtmlService.createTemplateFromFile("email");
+  htmlTemplate.h1 = h1;
+  htmlTemplate.netTotal = netTotal;
+  htmlTemplate.subheader = subheader;
+  htmlTemplate.date = date;
+  htmlTemplate.description = description;
+  htmlTemplate.amount = amount;
+  htmlTemplate.balance = balance;
+  htmlTemplate.tableRangeValues = tableRangeValues;
+  
+  
+  const htmlForEmail = htmlTemplate.evaluate().getContent();
+
+
+ // GmailApp.sendEmail("kedwards0107@gmail.com", "Bank Statement for " + cur_date, "Please open this email with client that supports HTML",
+  //{ htmlBody: htmlForEmail});
+
+ // GmailApp.sendEmail("beauedwards51@gmail.com", "Bank Statement " + cur_date, "Please open this email with client that supports HTML",
+ // { htmlBody: htmlForEmail});
+
+ // GmailApp.sendEmail("bpe51@icloud.com", "Bank Statement " + cur_date, "Please open this email with client that supports HTML",
+ // { htmlBody: htmlForEmail});
+
+}
+
+# HTML for email
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <div>
+      <div style = "background-color:blue; height:4px;"></div>
+      <div>
+        <h1 style = "color:black; font-size:24px;"><?= h1 ?></h1>
+        <div style = "color:blue; font-size:18px; font-weight:bold;"><?= subheader ?></div>
+        <div> </div>
+        <br></br>
+        <div style = "color:black; font-size:16px; font-weight:bold;">Net Balance =  <?= netTotal ?></div>
+        <div style = "margin-bottom:25px;"></div>
+        <table style="border-spacing:0px;">
+
+          <thead>
+            <tr style = "color:black; font-size:12px; text-align:left;">
+              <th><?= date ?></th><th style = "width:348px;"><?= description ?></th><th><?= amount ?></th><th style = "text-align:right; width:100px;"><?= balance ?></th>
+              </tr>
+          </thead>
+          <tbody>
+            
+              <? tableRangeValues.forEach((r,i) => { 
+                let color;
+                if(i % 2 === 0) {color = "#DDDDDD"} else {color = "white"}
+                ?> 
+              <tr style ="background-color:<?= color ?>;">
+                <td><?= r[0] ?></td><td style ="text-align:left;padding:8px;"><?= r[1] ?></td><td style ="text-align:left;padding:8px;"><?= r[2] ?></td><td style ="text-align:right;padding:8px;"><?= r[3] ?></td>
+              </tr>
+              <?}) ?>
+              
+          </tbody>
+          </table>
+      </div>
+    </div>
+  </body>
+</html>
+
+# function that adds allowance automatically
+
+function autoAllow() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ws = ss.getSheetByName("Allowance");
+  const allowAmt = ws.getRange("E3").getValue();
+  const newAllowAmt = parseInt(allowAmt)
+  let today = new Date();
+  //let nextWeek = new Date();
+  //nextWeek.setDate(today.getDate()+7);
+  let formatToday = Utilities.formatDate(today, "GMT", "MM/dd/yyyy");
+  //console.log(formatNextWeek)
+  const totalLine = ws.getRange(7,2,1,5).getValues();
+  const balance = totalLine[0][3];
+  const numBalance = parseFloat(balance)
+  const newBalance = numBalance+newAllowAmt
+  const formatNewBalance = newBalance.toFixed(2)
+  const allow = ["",formatToday, "Deposit - allowance", allowAmt, formatNewBalance];
+  function insertRow(ws, rowData, optIndex) {
+  let index = optIndex || 1;
+  ws.insertRowBefore(index).getRange(index, 1, 1, rowData.length).setValues([rowData]);
+  }
+  insertRow(ws,allow,7);  
+}
+
+# function to pull info from the google form
+
+function fromForm() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const allowSheet = ss.getSheetByName("Allowance");
+  const formSheet = ss.getSheetByName("Form");
+  const lastRow = formSheet.getLastRow();
+  const totalLine = formSheet.getRange(lastRow,1,1,5).getDisplayValues();
+  const curDate = Utilities.formatDate(new Date(), "GMT", "MM/dd/yyyy");
+  const item = totalLine[0][1];
+  const amount = totalLine[0][2];
+  const newAmt = parseFloat(amount)
+  const negNewAmt = newAmt * -1;
+  console.log(negNewAmt);
+  const totalLine2 = allowSheet.getRange(7,2,1,5).getValues();
+  const balance = totalLine2[0][3];
+  const numBalance = parseFloat(balance)
+  const newBalance = numBalance+negNewAmt
+  const formatNewBalance = newBalance.toFixed(2)
+  const row = ["",curDate, item, negNewAmt, formatNewBalance];
+  function insertRow(sheet, rowData, optIndex) {
+  var index = optIndex || 1;
+  sheet.insertRowBefore(index).getRange(index, 1, 1, rowData.length).setValues([rowData]);
+  }
+  insertRow(allowSheet,row,7);  
+  
+}
